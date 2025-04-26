@@ -2,36 +2,38 @@ import config from '../config.cjs';
 
 const tagAll = async (m, gss) => {
   try {
-    // Ensure the function is async
     const botNumber = await gss.decodeJid(gss.user.id);
     const prefix = config.PREFIX;
-const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
-const text = m.body.slice(prefix.length + cmd.length).trim();
-    
-    // Check for the valid command
+    const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
+    const text = m.body.slice(prefix.length + cmd.length).trim();
+
+    // Vérification de la commande
     const validCommands = ['tagall'];
     if (!validCommands.includes(cmd)) return;
 
+    // Vérifie que la commande est dans un groupe
+    if (!m.isGroup) return m.reply("*📛 THIS COMMAND CAN ONLY BE USED IN GROUPS*");
 
+    // Récupère les données du groupe
     const groupMetadata = await gss.groupMetadata(m.from);
     const participants = groupMetadata.participants;
-    const botAdmin = participants.find(p => p.id === botNumber)?.admin;
-    const senderAdmin = participants.find(p => p.id === m.sender)?.admin;
-    
-        if (!m.isGroup) return m.reply("*📛 THIS COMMAND CAN ONLY BE USED IN GROUPS*");
+    const groupName = groupMetadata.subject;  // Nom du groupe
 
-    if (!botAdmin) return m.reply("*📛 BOT MUST BE AN ADMIN TO USE THIS COMMAND*");
-    if (!senderAdmin) return m.reply("*📛 YOU MUST BE AN ADMIN TO USE THIS COMMAND*");
-    // Extract the message to be sent
-    let message = `乂 *Attention Everyone* 乂\n\n*Message:* ${m.body.slice(prefix.length + cmd.length).trim() || 'no message'}\n\n`;
-        
+    // Crée un tableau avec les IDs des participants pour la mention
+    const participantIds = participants.map(p => p.id);
 
+    // Crée le message à envoyer
+    let message = `乂 *Attention Everyone* 乂\n\n*Message:* ${text || 'no message'}\n\n`;
+    message += participantIds.map(id => `❒ @${id.split('@')[0]}`).join('\n') + '\n\n`;
+    message += `BY INCONNU-XD\n*Group:* ${groupName}`;
 
-    for (let participant of participants) {
-      message += `❒ @${participant.id.split('@')[0]}\n`;
-    }
+    // Envoie le message avec l'image et mentions
+    await gss.sendMessage(m.from, { 
+      image: { url: 'https://files.catbox.moe/230q0c.jpg' }, 
+      caption: message, 
+      mentions: participantIds 
+    }, { quoted: m });
 
-    await gss.sendMessage(m.from, { text: message, mentions: participants.map(a => a.id) }, { quoted: m });
   } catch (error) {
     console.error('Error:', error);
     await m.reply('An error occurred while processing the command.');
@@ -39,4 +41,3 @@ const text = m.body.slice(prefix.length + cmd.length).trim();
 };
 
 export default tagAll;
-    
